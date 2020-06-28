@@ -1,9 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
-
 import argparse
 import subprocess
-from nltk import *
 from flask import Flask, jsonify, request, render_template
 import re
 import requests
@@ -22,9 +20,9 @@ from elasticsearch import Elasticsearch
 from werkzeug.utils import secure_filename
 url_list = []
 word_d_list = []
-host = "127.0.0.1"
-port = "5000"
-result_count=1
+tmp=1
+host="127.0.0.1"
+port="5000"
 
 def whole_word_count(i): #i번째 url의 전체 단어수 return
     count = sum(word_d_list[i].values())
@@ -114,16 +112,18 @@ def name2_check():
             a = request.form['single']
             global word_d_list
             global url_list
-            global result_count
+            global tmp
             repeat = []
             denied = []
             checked = []
             count = 0
-            es = Elasticsearch([{'host':host,'port':port}],timeout=30)
-
+            es = Elasticsearch(host="127.0.0.1",port="5000",timeout=30)
+            e0={
+                "url" : a
+            }
             while True:
                 try:
-                    docs = es.search(index="url")
+                    docs = es.search(index='url', body=e0)
                     url_list=[]
                     word_d_list=[]
                     if docs['hits']['total'] > 0:
@@ -136,9 +136,8 @@ def name2_check():
                             print (doc['_source'].get('url'), count)
                     break
                 except Exception as e:
-                    print ("exception error")
+                    print ("exception error1")
                     break
-
 
             size = len(url_list)
             url = a+"\n"
@@ -205,8 +204,8 @@ def name2_check():
                 "cossimil":str(tempdiction2),
                 "tf_idf":str(tempdiction)
             }
-            es.index(index='result',doc_type='doc',id=result_count,body=e2)
-            result_count+=1
+            es.index(index='result',doc_type='doc',id=tmp,body=e2)
+            tmp+=1
             stop = timeit.default_timer() #시간측정 stop
 
             str1 = str(url_list)
@@ -225,10 +224,10 @@ def name3_check():
             start = timeit.default_timer() #시간측정 start
             global word_d_list
             global url_list
-            global result_count
+            global tmp
             count = 0
             checked = []
-            es = Elasticsearch([{'host':host,'port':port}],timeout=30)
+            es = Elasticsearch(host="127.0.0.1",port="5000",timeout=30)
             while True:
                 try:
                     docs = es.search(index="url")
@@ -242,7 +241,7 @@ def name3_check():
                             count+=1
                     break
                 except Exception as e:
-                    print ("exception error")
+                    print ("exception error2")
                     break
             print (str(len(url_list)))
             b = request.files['double']
@@ -328,8 +327,8 @@ def name3_check():
                 "cossimil":str(tempdiction2),
                 "tf_idf":str(tempdiction)
             }
-            es.index(index='result',doc_type='doc',id=result_count,body=e2)
-            result_count+=1
+            es.index(index='result',doc_type='doc',id=tmp,body=e2)
+            tmp+=1
             stop = timeit.default_timer() #시간측정 stop
             str1 = str(repeat)
             str2 = str(denied)
@@ -341,7 +340,7 @@ def name3_check():
                 whole_count[url] = whole_word_count(i)
                 i=i+1 
 
-            return  render_template("result.html",whole_count = whole_count)+"complete"+"<br> tf-idf:"+ str(tempdiction)+"<br> cosine similarity:"+str(tempdiction2) + "<br>run time : " +str(stop-start)+"<br> duplicated url : "+str1+ "<br> not accesible url : "+str2
+            return  render_template("result.html",whole_count = whole_count+"complete"+"<br> tf-idf:"+ str(tempdiction)+"<br> cosine similarity:"+str(tempdiction2) + "<br>run time : " +str(stop-start)+"<br> duplicated url : "+str1+ "<br> not accesible url : "+str2)
 
 "<button onclick=\"window.open('/test','window_name','width=100,height=100');\">button</button>"
 
@@ -350,14 +349,15 @@ def hello_test():
         return "<html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Post</title></head><body><form action=\"/single\" method=\"post\"><p>URL<input type=\"text\"name=\"single\"></p><input type=\"submit\" value=\"Analyze\"></form></body></html>  <html><body><form action=\"/double\" method = \"POST\" enctype = \"multipart/form-data\"><input type = \"file\" name = \"double\" /><input type = \"submit\"/></form></body></html>  " 
 
 if __name__ == '__main__':
-    try:
-        parser = argparse.ArgumentParser(description="")
-        parser.add_argument('--listen-port',  type=str, required=True, help='REST service listen port')
-        args = parser.parse_args()
-        listen_port = args.listen_port
-    except Exception as e:
-        print('Error: %s' % str(e))
+    # try:
+    #     parser = argparse.ArgumentParser(description="")
+    #     parser.add_argument('--listen-port',  type=str, required=True, help='REST service listen port')
+    #     args = parser.parse_args()
+    #     listen_port = args.listen_port
+    # except Exception as e:
+    #     print('Error: %s' % str(e))
 
-    ipaddr=subprocess.getoutput("hostname -I").split()[0]
-    print ("Starting the service with ip_addr="+ipaddr)
-    app.run(debug=False,host=ipaddr,port=int(listen_port))
+    # ipaddr=subprocess.getoutput("hostname -I").split()[0]
+    # print ("Starting the service with ip_addr="+ipaddr)
+    # app.run(debug=False,host=ipaddr,port=int(listen_port))
+    app.run(debug=False)
